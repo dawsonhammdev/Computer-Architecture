@@ -8,30 +8,43 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        self.ram = [1] * 256
+        self.ram = [0] * 256
         self.registers = [0] * 8
         self.pc = 0
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
 
-        address = 0
+        with open(filename) as f:
+            for line in f:
 
-        # For now, we've just hardcoded a program:
+                temp = line.split()
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+                self.ram[self.pc] = int(temp[0], 2)
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+                self.pc += 1
+
+        # print(self.ram[:13])
+        # sys.exit(0)
+
+        # temp = line.split()
+        #         temp = line.strip()
+
+        #         if len(temp) == 0:
+        #             continue
+
+        #         if temp[0][0] == "#":
+        #             continue
+
+        #         try:
+        #             self.ram[address] = int(temp[0], 2)
+
+        #         except ValueError:
+        #             print(f"Invalid number: {temp[0]}")
+        #             sys.exit(1)
+
+        # print(self.ram[:10])
+        # sys.exit(0)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -39,6 +52,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        if op == "MULT":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -75,11 +90,18 @@ class CPU:
 
                 self.pc += 3
             # PRN
-            elif ir == 0b01000111:
+            if ir == 0b01000111:
                 reg_num = self.ram[self.pc + 1]
                 print(self.registers[reg_num])
 
                 self.pc += 1
+            # MULT
+            if ir == 0b10100010:
+                a = self.ram[self.pc + 1]
+                b = self.ram[self.pc + 2]
+                self.alu("MULT", a, b)
+
+                self.pc += 3
             # HALT
             elif ir == 0b00000001:
                 running = False
