@@ -1,6 +1,7 @@
 """CPU functionality."""
 
 import sys
+from sys import argv
 
 
 class CPU:
@@ -14,34 +15,31 @@ class CPU:
 
     def load(self, filename):
         """Load a program into memory."""
+        address = 0
+        filename = sys.argv[1]
 
-        with open(filename) as f:
-            for line in f:
+        file = open(filename, 'r')
+        lines = file.readlines()
 
-                temp = line.split()
+        for line in lines:
 
-                self.ram[self.pc] = int(temp[0], 2)
+            temp = line.split()
+            line = line.strip()
 
-                self.pc += 1
+            if len(temp) == 0:
+                continue
 
-        # print(self.ram[:13])
-        # sys.exit(0)
+            if temp[0][0] == "#":
+                continue
 
-        # temp = line.split()
-        #         temp = line.strip()
+            try:
+                self.ram[address] = int(temp[0], 2)
 
-        #         if len(temp) == 0:
-        #             continue
+            except ValueError:
+                print(f"Invalid number: {temp[0]}")
+                sys.exit(1)
 
-        #         if temp[0][0] == "#":
-        #             continue
-
-        #         try:
-        #             self.ram[address] = int(temp[0], 2)
-
-        #         except ValueError:
-        #             print(f"Invalid number: {temp[0]}")
-        #             sys.exit(1)
+            address += 1
 
         # print(self.ram[:10])
         # sys.exit(0)
@@ -50,10 +48,10 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            self.registers[reg_a] += self.registers[reg_b]
         # elif op == "SUB": etc
         if op == "MULT":
-            self.reg[reg_a] *= self.reg[reg_b]
+            self.registers[reg_a] *= self.registers[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
