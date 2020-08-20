@@ -12,13 +12,15 @@ class CPU:
         self.ram = [0] * 256
         self.registers = [0] * 8
         self.pc = 0
+        # self.SP = 244
 
     def load(self, filename):
         """Load a program into memory."""
         address = 0
-        filename = sys.argv[1]
+# ()        filename = sys.argv[1]
 
-        file = open(filename, 'r')
+        file = open(
+            "/Users/dawsonhamm/Desktop/Lambda/Computer-Architecture/ls8/examples/stack.ls8", 'r')
         lines = file.readlines()
 
         for line in lines:
@@ -85,6 +87,7 @@ class CPU:
                 reg_num = self.ram[self.pc + 1]
                 value = self.ram[self.pc + 2]
                 self.registers[reg_num] = value
+                # print(reg_num, value)
 
                 self.pc += 3
             # PRN
@@ -92,7 +95,7 @@ class CPU:
                 reg_num = self.ram[self.pc + 1]
                 print(self.registers[reg_num])
 
-                self.pc += 1
+                self.pc += 2
             # MULT
             if ir == 0b10100010:
                 a = self.ram[self.pc + 1]
@@ -100,6 +103,23 @@ class CPU:
                 self.alu("MULT", a, b)
 
                 self.pc += 3
+
+            # PUSH
+            if ir == 0b01000101:
+                # self.SP = self.registers[7]
+                self.registers[7] -= 1
+                self.ram_write(self.registers[self.ram_read(
+                    self.pc + 1)], self.registers[7])
+                self.pc += 2
+
+            # POP
+            if ir == 0b01000110:
+                # self.SP = self.registers[7]
+                self.registers[self.ram_read(
+                    self.pc + 1)] = self.ram_read(self.registers[7])
+                self.registers[7] += 1
+                self.pc += 2
+
             # HALT
             elif ir == 0b00000001:
                 running = False
