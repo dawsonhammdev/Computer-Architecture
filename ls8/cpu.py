@@ -12,15 +12,17 @@ class CPU:
         self.ram = [0] * 256
         self.registers = [0] * 8
         self.pc = 0
-        # self.SP = 244
+        self.SP = 7
+        self.registers[self.SP] = 0xf4
+        self.FL = 0b00000000
 
     def load(self, filename):
         """Load a program into memory."""
         address = 0
-# ()        filename = sys.argv[1]
+        filename = sys.argv[1]
 
         file = open(
-            "/Users/dawsonhamm/Desktop/Lambda/Computer-Architecture/ls8/examples/stack.ls8", 'r')
+            filename, 'r')
         lines = file.readlines()
 
         for line in lines:
@@ -54,6 +56,14 @@ class CPU:
         # elif op == "SUB": etc
         if op == "MULT":
             self.registers[reg_a] *= self.registers[reg_b]
+        # `FL` bits: `00000LGE`
+        if op == "COMP":
+            if self.registers[reg_a] == self.registers[reg_b]:
+                self.FL += 0b00000001
+            if self.registers[reg_a] > self.registers[reg_b]:
+                self.FL += 0b00000010
+            if self.registers[reg_a] < self.registers[reg_b]:
+                self.FL += 0b00000100
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -107,17 +117,70 @@ class CPU:
             # PUSH
             if ir == 0b01000101:
                 # self.SP = self.registers[7]
-                self.registers[7] -= 1
+                self.registers[self.SP] -= 1
                 self.ram_write(self.registers[self.ram_read(
-                    self.pc + 1)], self.registers[7])
+                    self.pc + 1)], self.registers[self.SP])
                 self.pc += 2
 
             # POP
             if ir == 0b01000110:
                 # self.SP = self.registers[7]
                 self.registers[self.ram_read(
-                    self.pc + 1)] = self.ram_read(self.registers[7])
-                self.registers[7] += 1
+                    self.pc + 1)] = self.ram_read(self.registers[self.SP])
+                self.registers[self.SP] += 1
+                self.pc += 2
+
+            # CALL
+            if ir == 0b01010000:
+                # Push return address
+                ret_addr = self.pc + 2
+                self.registers[self.SP] -= 1
+                self.ram[self.registers[self.SP]] = ret_addr
+
+                # Call the subroutine
+                reg_num = self.ram[self.pc + 1]
+                self.pc = self.registers[reg_num]
+
+                self.pc += 2
+
+            # RET
+            if ir == 0b00010001:
+                # Pop the return addr off the stack
+                ret_addr = self.ram[self.registers[self.SP]]
+                self.registers[self.SP] += 1
+                # Set the PC to it
+                self.pc = ret_addr
+
+            # CMP
+            if ir == 0b10100111:
+                a = self.ram[self.pc + 1]
+                b = self.ram[self.pc + 2]
+                self.alu("COMP", a, b)
+
+                self.pc += 3
+
+            # JMP
+            # `FL` bits: `00000LGE`
+            if ir == 0b01010100:
+                jmp_reg = self.ram_read(self.pc)
+                self.pc = jmp_reg
+
+                self.pc += 2
+
+            # JEQ
+            if ir == 0b01010101:
+                if self.FL is 0b00000001:
+                    jmp_reg = self.ram_read(self.pc)
+                    self.pc = jmp_reg
+
+                self.pc += 2
+
+            # JNE
+            if ir == 0b01010110:
+                if self.FL is 0b00000000:
+                    jmp_reg = self.ram_read(self.pc)
+                    self.pc = jmp_reg
+
                 self.pc += 2
 
             # HALT
