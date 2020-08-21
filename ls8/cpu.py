@@ -57,13 +57,14 @@ class CPU:
         if op == "MULT":
             self.registers[reg_a] *= self.registers[reg_b]
         # `FL` bits: `00000LGE`
-        if op == "COMP":
+        if op == "CMP":
             if self.registers[reg_a] == self.registers[reg_b]:
-                self.FL += 0b00000001
+                self.FL = 0b00000001
             if self.registers[reg_a] > self.registers[reg_b]:
-                self.FL += 0b00000010
+                self.FL = 0b00000010
             if self.registers[reg_a] < self.registers[reg_b]:
-                self.FL += 0b00000100
+                self.FL = 0b00000100
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -101,13 +102,13 @@ class CPU:
 
                 self.pc += 3
             # PRN
-            if ir == 0b01000111:
+            elif ir == 0b01000111:
                 reg_num = self.ram[self.pc + 1]
                 print(self.registers[reg_num])
 
                 self.pc += 2
             # MULT
-            if ir == 0b10100010:
+            elif ir == 0b10100010:
                 a = self.ram[self.pc + 1]
                 b = self.ram[self.pc + 2]
                 self.alu("MULT", a, b)
@@ -115,7 +116,7 @@ class CPU:
                 self.pc += 3
 
             # PUSH
-            if ir == 0b01000101:
+            elif ir == 0b01000101:
                 # self.SP = self.registers[7]
                 self.registers[self.SP] -= 1
                 self.ram_write(self.registers[self.ram_read(
@@ -123,65 +124,60 @@ class CPU:
                 self.pc += 2
 
             # POP
-            if ir == 0b01000110:
+            elif ir == 0b01000110:
                 # self.SP = self.registers[7]
                 self.registers[self.ram_read(
                     self.pc + 1)] = self.ram_read(self.registers[self.SP])
                 self.registers[self.SP] += 1
                 self.pc += 2
 
-            # CALL
-            if ir == 0b01010000:
-                # Push return address
-                ret_addr = self.pc + 2
-                self.registers[self.SP] -= 1
-                self.ram[self.registers[self.SP]] = ret_addr
+            # # CALL
+            # if ir == 0b01010000:
+            #     # Push return address
+            #     ret_addr = self.pc + 2
+            #     self.registers[self.SP] -= 1
+            #     self.ram[self.registers[self.SP]] = ret_addr
 
-                # Call the subroutine
-                reg_num = self.ram[self.pc + 1]
-                self.pc = self.registers[reg_num]
+            #     # Call the subroutine
+            #     reg_num = self.ram[self.pc + 1]
+            #     self.pc = self.registers[reg_num]
 
-                self.pc += 2
+            #     self.pc += 2
 
-            # RET
-            if ir == 0b00010001:
-                # Pop the return addr off the stack
-                ret_addr = self.ram[self.registers[self.SP]]
-                self.registers[self.SP] += 1
-                # Set the PC to it
-                self.pc = ret_addr
+            # # RET
+            # if ir == 0b00010001:
+            #     # Pop the return addr off the stack
+            #     ret_addr = self.ram[self.registers[self.SP]]
+            #     self.registers[self.SP] += 1
+            #     # Set the PC to it
+            #     self.pc = ret_addr
 
             # CMP
-            if ir == 0b10100111:
+            elif ir == 0b10100111:
                 a = self.ram[self.pc + 1]
                 b = self.ram[self.pc + 2]
-                self.alu("COMP", a, b)
+                self.alu("CMP", a, b)
 
                 self.pc += 3
 
             # JMP
             # `FL` bits: `00000LGE`
-            if ir == 0b01010100:
-                jmp_reg = self.ram_read(self.pc)
-                self.pc = jmp_reg
-
-                self.pc += 2
+            elif ir == 0b01010100:
+                self.pc = self.registers[self.ram_read(self.pc + 1)]
 
             # JEQ
-            if ir == 0b01010101:
-                if self.FL is 0b00000001:
-                    jmp_reg = self.ram_read(self.pc)
-                    self.pc = jmp_reg
-
-                self.pc += 2
+            elif ir == 0b01010101:
+                if self.FL & 0b00000001 == 1:
+                    self.pc = self.registers[self.ram_read(self.pc + 1)]
+                else:
+                    self.pc += 2
 
             # JNE
-            if ir == 0b01010110:
-                if self.FL is 0b00000000:
-                    jmp_reg = self.ram_read(self.pc)
-                    self.pc = jmp_reg
-
-                self.pc += 2
+            elif ir == 0b01010110:
+                if self.FL & 0b00000001 == 0:
+                    self.pc = self.registers[self.ram_read(self.pc + 1)]
+                else:
+                    self.pc += 2
 
             # HALT
             elif ir == 0b00000001:
